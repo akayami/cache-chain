@@ -1,0 +1,25 @@
+{
+  "name": "cache-chain",
+  "version": "0.0.1",
+  "description": "Multlevel cache system",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akayami/cache-chain.git"
+  },
+  "author": "Tomasz Rakowski",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/akayami/cache-chain/issues"
+  },
+  "homepage": "https://github.com/akayami/cache-chain#readme",
+  "devDependencies": {
+    "mocha": "^2.3.4"
+  },
+  "dependencies": {
+    "merge": "^1.2.0"
+  }
+}
