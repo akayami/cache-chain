@@ -32,13 +32,6 @@ module.exports = {
 				value = args.shift();
 				options = args.shift();
 				options = merge(true, this.config, options);
-
-				value = {
-					v: value,
-					stale: (Date.now + options.stale * 1),
-					staletime: options.stale,
-					ttl: options.ttl
-				}
 				child.set(key, value, options, cb);
 			};
 
@@ -56,14 +49,15 @@ module.exports = {
 
 				child.get(key, options, function(err, value) {
 					cb(err, (value && value.v ? value.v : null));
-					if (value && value.stale < Date.now && !refreshed[key]) {
+					if(value && (value.s * 1 + value.a *  1) < Date.now() && !refreshed[key] ) {
 						refreshed[key] = setTimeout(function() {
 							delete refreshed[key];
-						}, 3000)
+						}, 3000);
+
 						child.get(key, merge(true, options, {
 							deep: true
 						}), function(err, value) {
-							this.set(key, value, {
+							this.scope.set(key, value, {
 								ttl: value.ttl,
 								stale: value.stale
 							}, function(err) {
@@ -73,9 +67,9 @@ module.exports = {
 								clearTimeout(refreshed[key]);
 								delete refreshed[key];
 							});
-						})
+						}.bind({scope: this.scope}))
 					}
-				});
+				}.bind({scope: this}));
 			};
 
 			this.delete = function(key, options, cb) {
@@ -111,11 +105,16 @@ module.exports = {
 				return layer;
 			},
 			set: function(key, value, options, cb) {
-				backend.set(key, value, options, function(err) {
+				backend.set(key, {
+					v: value,
+					a: Date.now(),
+					s: options.stale,
+					t: options.ttl
+				}, options, function(err) {
 					if (err) {
 						cb(err);
 					} else {
-						if (this.scope.child != null) {
+						if (this.scope.child != null && options && options.shallow && options.shallow !== true) {
 							this.scope.child.set(key, value, options, function(err) {
 								if (err) {
 									cb(err)
@@ -133,13 +132,14 @@ module.exports = {
 			},
 			get: function(key, options, cb) {
 				if (options.deep === true) {
-					if (this.scope.child != null) {
-						this.scope.child.get(key, options, function(err, value) {
+					if (this.child != null) {
+						this.child.get(key, options, function(err, value) {
+							//console.log(value);
 							cb(err, value);
 						})
 					} else {
 						backend.get(key, options, function(err, value) {
-							cb(err, value);
+							cb(err, merge(true, {t: options.ttl, s: options.stale, a: Date.now()}, value));
 						});
 					}
 				} else {
@@ -148,12 +148,18 @@ module.exports = {
 							if (this.scope.child != null) {
 								this.scope.child.get(key, options, function(err, value) {
 									cb(err, value);
-								})
+									this.scope.set(key, value.v, merge(true, options, {shallow: true}), function(err) {
+										if(err) {
+											logger.error('Failed to refresh value for key: ' + key);
+											logger.error(err);
+										}
+									})
+								}.bind({scope: this.scope}));
 							} else {
 								cb(err);
 							}
 						} else {
-							cb(null, value);
+							cb(null, merge(true, {t: options.ttl, s: options.stale, a: Date.now()}, value));
 						}
 					}.bind({
 						scope: this

@@ -1,8 +1,9 @@
+var merge = require('merge');
 describe('Test with authorative backend', function() {
 
 	var fake, cache, LevelSnifer;
 
-	before(function() {
+	beforeEach(function() {
 		fake = require('./fake-backend')();
 		fake2 = require('./fake-backend')();
 		fake3 = require('./fake-backend')();
@@ -72,8 +73,8 @@ describe('Test with authorative backend', function() {
 				cb();
 			},
 			get: function(key, options, cb) {
+				LevelSnifer[key] = 'L3';
 				if (fakeDataset[key]) {
-					LevelSnifer[key] = 'L3';
 					cb(null, fakeDataset[key]);
 				} else {
 					cb(new Error('Key not found'))
@@ -106,4 +107,71 @@ describe('Test with authorative backend', function() {
 			}
 		})
 	});
+
+	it('Second lookup must find the value in top level', function(done) {
+		cache.get('key1', function(err, value) {
+			if(err) {
+				done(err);
+			} else {
+				setTimeout(function() {
+					cache.get('key1', function(err, value) {
+						if (value == 'value1') {
+							if (LevelSnifer['key1'] == 'L1') {
+								done();
+							} else {
+								done('Data retrived from wrong level' + LevelSnifer['key1']);
+							}
+						} else {
+							done('Invalid value returned' + value);
+						}
+					});
+				}, 15);
+			}
+		});
+	});
+
+	it('Value needs to become stale after stale period has passed', function(done) {
+		cache.get('key2', {ttl: 20, stale :10}, function(err, value) {
+			if(err) {
+				done(err);
+			} else {
+				setTimeout(function() {
+					cache.get('key2', {ttl: 20, stale :10}, function(err, value) {
+						if (value == 'value2') {
+							if (LevelSnifer['key2'] == 'L1') {
+								done();
+							} else {
+								done('Data retrived from wrong level' + LevelSnifer['key1']);
+							}
+						} else {
+							done('Invalid value returned' + value);
+						}
+					});
+				}, 15);
+			}
+		});
+	});
+
+	it('Value needs to be removed after ttl period has passed', function(done) {
+		cache.get('key2', {ttl: 20, stale :10}, function(err, value) {
+			if(err) {
+				done(err);
+			} else {
+				setTimeout(function() {
+					cache.get('key2', {ttl: 20, stale :10}, function(err, value) {
+						if (value == 'value2') {
+							if (LevelSnifer['key2'] == 'L3') {
+								done();
+							} else {
+								done('Data retrived from wrong level' + LevelSnifer['key2']);
+							}
+						} else {
+							done('Invalid value returned' + value);
+						}
+					});
+				}, 25);
+			}
+		});
+	});
+
 })
