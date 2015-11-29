@@ -1,4 +1,4 @@
-describe('cache-chain test suite', function() {
+describe('Basic tests', function() {
 
 	var fake, cache;
 
@@ -129,6 +129,7 @@ describe('cache-chain test suite', function() {
 		}
 	});
 
+
 	it('Must be able to set a value', function(done) {
 		cache.set('key', 'value', { ttl: 10000 }, function(err) {
 			if (err) {
@@ -141,7 +142,7 @@ describe('cache-chain test suite', function() {
 	it('Must be able to get a value', function(done) {
 		cache.get('key', function(err, value) {
 			if (err) {
-				done('Failed to set value');
+				done('Failed to get value');
 			} else {
 				if (value == 'value') {
 					done();
@@ -180,4 +181,32 @@ describe('cache-chain test suite', function() {
 			}
 		})
 	});
+
+	it('Must allow for ttl to be overwritten', function(done) {
+		cache.set('key2', 'value2', { ttl: 50 }, function(err) {
+			if (err) {
+				done('Failed to set value');
+			} else {
+				cache.get('key2', function(err) {
+					if(err) {
+						done(err);
+					} else {
+						setTimeout(function() {
+							cache.get('key2', function(err) {
+								if(err) {
+									if(err.message == 'Key not found') {
+										done();
+									} else {
+										done('Incorrect error message');
+									}
+								} else {
+									done('The value did not timed out as expected');
+								}
+							})
+						}, 100)
+					}
+				})
+			}
+		})
+	})
 })

@@ -35,7 +35,9 @@ module.exports = {
 
 				value = {
 					v: value,
-					stale: (Date.now + this.config.stale * 1)
+					stale: (Date.now + options.stale * 1),
+					staletime: options.stale,
+					ttl: options.ttl
 				}
 				child.set(key, value, options, cb);
 			};
@@ -54,14 +56,23 @@ module.exports = {
 
 				child.get(key, options, function(err, value) {
 					cb(err, (value && value.v ? value.v : null));
-					if (value && value.stale < Date.now) {
+					if (value && value.stale < Date.now && !refreshed[key]) {
 						refreshed[key] = setTimeout(function() {
 							delete refreshed[key];
 						}, 3000)
-						child.get(key, {
-							refresh: true
-						}, function() {
-
+						child.get(key, merge(true, options, {
+							deep: true
+						}), function(err, value) {
+							this.set(key, value, {
+								ttl: value.ttl,
+								stale: value.stale
+							}, function(err) {
+								if (err) {
+									console.log(err);
+								}
+								clearTimeout(refreshed[key]);
+								delete refreshed[key];
+							});
 						})
 					}
 				});
@@ -121,21 +132,33 @@ module.exports = {
 				}))
 			},
 			get: function(key, options, cb) {
-				backend.get(key, options, function(err, value) {
-					if (err) {
-						if (this.scope.child != null) {
-							this.scope.child.get(key, options, function(err, value) {
-								cb(err, value);
-							})
-						} else {
-							cb(err);
-						}
+				if (options.deep === true) {
+					if (this.scope.child != null) {
+						this.scope.child.get(key, options, function(err, value) {
+							cb(err, value);
+						})
 					} else {
-						cb(null, value);
+						backend.get(key, options, function(err, value) {
+							cb(err, value);
+						});
 					}
-				}.bind({
-					scope: this
-				}))
+				} else {
+					backend.get(key, options, function(err, value) {
+						if (err) {
+							if (this.scope.child != null) {
+								this.scope.child.get(key, options, function(err, value) {
+									cb(err, value);
+								})
+							} else {
+								cb(err);
+							}
+						} else {
+							cb(null, value);
+						}
+					}.bind({
+						scope: this
+					}))
+				}
 			},
 			delete: function(key, options, cb) {
 				backend.delete(key, options, function(err) {
