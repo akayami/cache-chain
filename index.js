@@ -148,18 +148,31 @@ module.exports = {
 							if (this.scope.child != null) {
 								this.scope.child.get(key, options, function(err, value) {
 									cb(err, value);
-									this.scope.set(key, value.v, merge(true, options, {shallow: true}), function(err) {
-										if(err) {
-											logger.error('Failed to refresh value for key: ' + key);
-											logger.error(err);
-										}
-									})
+									if(!err) {
+										this.scope.set(key, value.v, merge(true, options, {shallow: true}), function(err) {
+											if(err) {
+												logger.error('Failed to refresh value for key: ' + key);
+												logger.error(err);
+											}
+										});
+									} else {
+										this.scope.set(key, null, merge(true, options, {shallow: true}), function(err) {
+											if(err) {
+												logger.error('Failed to refresh value for key: ' + key);
+												logger.error(err);
+											}
+										});
+									}
 								}.bind({scope: this.scope}));
 							} else {
 								cb(err);
 							}
 						} else {
-							cb(null, merge(true, {t: options.ttl, s: options.stale, a: Date.now()}, value));
+							if(value.v === null) {
+								cb(new Error('Empty cached value found'), merge(true, {t: options.ttl, s: options.stale, a: Date.now()}, value));
+							} else {
+								cb(null, merge(true, {t: options.ttl, s: options.stale, a: Date.now()}, value));
+							}
 						}
 					}.bind({
 						scope: this

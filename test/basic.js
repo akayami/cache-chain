@@ -2,7 +2,7 @@ describe('Basic tests', function() {
 
 	var fake, cache;
 
-	before(function() {
+	beforeEach(function() {
 		fake = require('./fake-backend')();
 		fake2 = require('./fake-backend')();
 		fake3 = require('./fake-backend')();
@@ -140,35 +140,39 @@ describe('Basic tests', function() {
 		})
 	});
 	it('Must be able to get a value', function(done) {
-		cache.get('key', function(err, value) {
-			if (err) {
-				done('Failed to get value');
-			} else {
-				if (value == 'value') {
-					done();
+		cache.set('key', 'value', { ttl: 10000 }, function(err) {
+			cache.get('key', function(err, value) {
+				if (err) {
+					done('Failed to get value');
 				} else {
-					done('Invalid value returned' + value);
+					if (value == 'value') {
+						done();
+					} else {
+						done('Invalid value returned' + value);
+					}
 				}
-			}
-		})
+			});
+		});
 	});
 	it('Must be able to delete a value', function(done) {
-		cache.delete('key', function(err) {
-			if (err) {
-				done('Failed to delete value');
-			} else {
-				cache.get('key', function(err, value) {
-					if (err) {
-						done()
-					} else {
-						done('Value returned while it should have been deleted');
-					}
-				});
-			}
-		})
+		cache.set('key', 'value', { ttl: 10000 }, function(err) {
+			cache.delete('key', function(err) {
+				if (err) {
+					done('Failed to delete value');
+				} else {
+					cache.get('key', function(err, value) {
+						if (err) {
+							done()
+						} else {
+							done('Value returned while it should have been deleted');
+						}
+					});
+				}
+			});
+		});
 	});
 
-	it('Must fail to get non-existing key', function(done) {
+	it('Must fail to get a non-existing key', function(done) {
 		cache.get('non-existing', function(err) {
 			if (err) {
 				if (err.message == "Key not found") {

@@ -24,8 +24,10 @@ module.exports = function() {
 		};
 
 		this.delete = function(key, cb) {
-			clearTimeout(store[key].timeout);
-			delete store[key];
+			if(store[key]) {
+				clearTimeout(store[key].timeout);
+				delete store[key];
+			}
 			cb();
 		}
 	}

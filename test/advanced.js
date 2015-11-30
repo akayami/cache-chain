@@ -24,9 +24,10 @@ describe('Test with authorative backend', function() {
 			},
 			get: function(key, options, cb) {
 				fake.get(key, function(err, value) {
-					if (!err) {
-						LevelSnifer[key] = 'L1';
-					}
+					LevelSnifer[key] = 'L1';
+					// if (!err) {
+					// 	LevelSnifer[key] = 'L1';
+					// }
 					cb(err, value);
 				})
 			},
@@ -45,9 +46,10 @@ describe('Test with authorative backend', function() {
 			},
 			get: function(key, options, cb) {
 				fake2.get(key, function(err, value) {
-					if (!err) {
-						LevelSnifer[key] = 'L2';
-					}
+					LevelSnifer[key] = 'L2';
+					// if (!err) {
+					// 	LevelSnifer[key] = 'L2';
+					// }
 					cb(err, value);
 				})
 			},
@@ -172,6 +174,37 @@ describe('Test with authorative backend', function() {
 				}, 25);
 			}
 		});
+	});
+
+	it('Must fail to get a non-existing key but cache that failure', function(done) {
+		var key = 'non-existing';
+		cache.get(key, function(err, value) {
+			if (err) {
+				if(LevelSnifer[key] == 'L3') {
+					if (err.message == "Key not found") {
+						setTimeout(function() {
+							cache.get(key, function(err, value) {
+								if(err) {
+									if(err.message === 'Empty cached value found') {
+										done();
+									} else {
+										done('Invalid error message sent');
+									}
+								} else {
+									done('Request on cached get did not return an error');
+								}
+							});
+						}, 100);
+					} else {
+						done('Returned error does not match expected error');
+					}
+				} else {
+					done('Get failed to reach bottom level: '  + LevelSnifer['key2']);
+				}
+			} else {
+				done('Failed. no error returned for missing value');
+			}
+		})
 	});
 
 })
