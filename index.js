@@ -21,6 +21,18 @@ module.exports = {
 				}
 			}
 
+			function aquireLock(key) {
+				if(!refreshed[key]) {
+					refreshed[key] = setTimeout(function() {
+						console.warn('refresh timeout');
+						delete refreshed[key];
+					}, 3000);
+					return true;
+				} else {
+					return false;
+				}
+			}
+
 			this.set = function(key, value, options, cb) {
 
 				var args = [];
@@ -49,17 +61,13 @@ module.exports = {
 
 				child.get(key, options, function(err, value) {
 					cb(err, (value && value.v ? value.v : null));
-					if(value && (value.s * 1 + value.a *  1) < Date.now() && !refreshed[key] ) {
-						refreshed[key] = setTimeout(function() {
-							delete refreshed[key];
-						}, 3000);
-
+					if(value && (value.s * 1 + value.a *  1) < Date.now() && aquireLock(key) ) {
 						child.get(key, merge(true, options, {
 							deep: true
 						}), function(err, value) {
-							this.scope.set(key, value, {
-								ttl: value.ttl,
-								stale: value.stale
+							this.scope.set(key, value.v, {
+								ttl: value.t,
+								stale: value.s
 							}, function(err) {
 								if (err) {
 									console.log(err);
