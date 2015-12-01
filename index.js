@@ -33,6 +33,11 @@ module.exports = {
 				}
 			}
 
+			function clearLock(key) {
+				clearTimeout(refreshed[key]);
+				delete refreshed[key];
+			}
+
 			this.set = function(key, value, options, cb) {
 
 				var args = [];
@@ -72,8 +77,7 @@ module.exports = {
 								if (err) {
 									console.log(err);
 								}
-								clearTimeout(refreshed[key]);
-								delete refreshed[key];
+								clearLock(key);
 							});
 						}.bind({scope: this.scope}))
 					}
