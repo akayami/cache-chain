@@ -1,6 +1,6 @@
 {
   "name": "cache-chain",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Multi-level chained cache system",
   "main": "index.js",
   "scripts": {
