@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/akayami/cache-chain.svg?branch=master)](https://travis-ci.org/akayami/cache-chain)
+
 # cache-chain
 An abstract multilayer cache system.
 
