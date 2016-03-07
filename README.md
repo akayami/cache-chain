@@ -23,8 +23,8 @@ var ccr = require('cache-chain-redis');
 var ccm = require('cache-chain-memory');
 
 var chain = cc.chain({
-	ttl: 10000,			// Setting default chain timeouts
-	stale: 10000 * 2
+	stale: 10000,			// Setting default chain timeouts
+	ttl: 10000 * 2
 });
 
 var redisClient = redis.createClient();
@@ -62,4 +62,3 @@ The main characteristic of a key/value chained caching system is that the last i
 
 Consult the following diagram:
 [Usecase 1](https://docs.google.com/drawings/d/1nh694sgPjEO1g7CagnQgC61gMwacge9PyaXPGMYSZjk/edit?usp=sharing)
-

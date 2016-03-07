@@ -79,7 +79,7 @@ describe('Test with authorative backend', function() {
 				if (fakeDataset[key]) {
 					cb(null, fakeDataset[key]);
 				} else {
-					cb(new Error('Key not found'))
+					cb(new cacheChain.error.notFound);
 				}
 			},
 			delete: function(key, options, cb) {
@@ -181,7 +181,7 @@ describe('Test with authorative backend', function() {
 		cache.get(key, function(err, value) {
 			if (err) {
 				if(LevelSnifer[key] == 'L3') {
-					if (err.message == "Key not found") {
+					if(err instanceof cacheChain.error.notFound) {
 						setTimeout(function() {
 							cache.get(key, function(err, value) {
 								if(err) {

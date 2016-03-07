@@ -1,6 +1,21 @@
+'use strict'
+
 var merge = require('merge');
 
 module.exports = {
+
+	error: {
+	 	notFound: class extends Error {
+			constructor() {
+				super('Key Not Found')
+			}
+		},
+	 	failedToRefresh: class extends Error {
+			constructor() {
+				super('Failed To Refresh')
+			}
+		}
+	},
 
 	chain: function(config) {
 		function Chain(config) {
