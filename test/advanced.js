@@ -76,7 +76,9 @@ describe('Test with authorative backend', function() {
 			},
 			get: function(key, options, cb) {
 				LevelSnifer[key] = 'L3';
-				if (fakeDataset[key]) {
+				if(key == 'failed-lookup-backend-down') {
+					cb(new cacheChain.error.failedToRefresh);
+				} else if (fakeDataset[key]) {
 					cb(null, fakeDataset[key]);
 				} else {
 					cb(new cacheChain.error.notFound);
@@ -185,7 +187,38 @@ describe('Test with authorative backend', function() {
 						setTimeout(function() {
 							cache.get(key, function(err, value) {
 								if(err) {
-									if(err.message === 'Empty cached value found') {
+									if(err instanceof cacheChain.error.emptyCacheValue && LevelSnifer[key] == "L1") {
+										done();
+									} else {
+										done('Invalid error message sent');
+									}
+								} else {
+									done('Request on cached get did not return an error');
+								}
+							});
+						}, 100);
+					} else {
+						done('Returned error does not match expected error');
+					}
+				} else {
+					done('Get failed to reach bottom level: '  + LevelSnifer['key2']);
+				}
+			} else {
+				done('Failed. no error returned for missing value');
+			}
+		})
+	});
+
+	it('Must fail when unable to retrive value from backend (backend down) and should not cache that response', function(done) {
+		var key = 'failed-lookup-backend-down';
+		cache.get(key, function(err, value) {
+			if (err) {
+				if(LevelSnifer[key] == 'L3') {
+					if(err instanceof cacheChain.error.failedToRefresh) {
+						setTimeout(function() {
+							cache.get(key, function(err, value) {
+								if(err) {
+									if((err instanceof cacheChain.error.failedToRefresh) && LevelSnifer[key] == 'L3') {
 										done();
 									} else {
 										done('Invalid error message sent');

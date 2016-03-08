@@ -2,19 +2,48 @@
 
 var merge = require('merge');
 
+var ErrorNotFound = class extends Error {
+	constructor(rootCause) {
+		super('Key Not Found')
+		if(rootCause) {
+			this.parent = rootCause;
+		}
+	}
+
+	toString() {
+		return (this.parent && (this.parent instanceof Error) ? super.toString() + ' - Root Error: ' + this.parent.toString() : super.toString());
+	}
+}
+
+var ErrorFailedToRefresh = class extends Error {
+	constructor(rootCause) {
+		super('Failed to refresh due to backend failure')
+		if(rootCause) {
+			this.parent = rootCause;
+		}
+	}
+	toString() {
+		return (this.parent && (this.parent instanceof Error) ? super.toString() + ' - Root Error: ' + this.parent.toString() : super.toString());
+	}
+}
+
+var ErrorEmptyCachedValue = class extends Error {
+	constructor(rootCause) {
+		super('Empty Cached value returned - This might be normal')
+		if(rootCause) {
+			this.parent = rootCause;
+		}
+	}
+	toString() {
+		return (this.parent && (this.parent instanceof Error) ? super.toString() + ' - Root Error: ' + this.parent.toString() : super.toString());
+	}
+}
 module.exports = {
 
 	error: {
-	 	notFound: class extends Error {
-			constructor() {
-				super('Key Not Found')
-			}
-		},
-	 	failedToRefresh: class extends Error {
-			constructor() {
-				super('Failed To Refresh')
-			}
-		}
+	 	notFound: ErrorNotFound,
+	 	failedToRefresh: ErrorFailedToRefresh,
+		emptyCacheValue: ErrorEmptyCachedValue
 	},
 
 	chain: function(config) {
@@ -81,19 +110,31 @@ module.exports = {
 
 				child.get(key, options, function(err, value) {
 					cb(err, (value && value.v ? value.v : null));
-					if(value && (value.s * 1 + value.a *  1) < Date.now() && aquireLock(key) ) {
+					if(value && (value.s * 1 + value.a *  1) < Date.now() && aquireLock(key) ) {	// Checking if value is stale and tyring to refresh
 						child.get(key, merge(true, options, {
 							deep: true
 						}), function(err, value) {
-							this.scope.set(key, value.v, {
-								ttl: value.t,
-								stale: value.s
-							}, function(err) {
-								if (err) {
-									console.log(err);
-								}
-								clearLock(key);
-							});
+							if(!err) {
+								this.scope.set(key, value.v, {
+									ttl: value.t,
+									stale: value.s
+								}, function(err) {
+									if (err) {
+										console.log(err);
+									}
+									clearLock(key);
+								});
+							} else if(err instanceof ErrorNotFound) {
+								this.scope.set(key, null, options, function(err) {
+									if(err) {
+										console.log(err);
+									}
+									clearLock(key);
+								})
+							} else {
+								console.error('Error occured while attempting to refresh backend');
+								clearLock(key)
+							}
 						}.bind({scope: this.scope}))
 					}
 				}.bind({scope: this}));
@@ -183,12 +224,14 @@ module.exports = {
 											}
 										});
 									} else {
-										this.scope.set(key, null, merge(true, options, {shallow: true}), function(err) {
-											if(err) {
-												logger.error('Failed to refresh value for key: ' + key);
-												logger.error(err);
-											}
-										});
+										if(!(err instanceof ErrorFailedToRefresh)) {
+											this.scope.set(key, null, merge(true, options, {shallow: true}), function(err) {
+												if(err) {
+													logger.error('Failed to refresh value for key: ' + key);
+													logger.error(err);
+												}
+											});
+										}
 									}
 								}.bind({scope: this.scope}));
 							} else {
@@ -196,7 +239,7 @@ module.exports = {
 							}
 						} else {
 							if(value.v === null) {
-								cb(new Error('Empty cached value found'), merge(true, {t: options.ttl, s: options.stale, a: Date.now()}, value));
+								cb(new ErrorEmptyCachedValue, merge(true, {t: options.ttl, s: options.stale, a: Date.now()}, value));
 							} else {
 								cb(null, merge(true, {t: options.ttl, s: options.stale, a: Date.now()}, value));
 							}
