@@ -17,7 +17,7 @@ var ErrorNotFound = class extends Error {
 
 var ErrorFailedToRefresh = class extends Error {
 	constructor(rootCause) {
-		super('Failed to refresh due to backend failure')
+		super('Failed to refresh')
 		if(rootCause) {
 			this.parent = rootCause;
 		}
@@ -132,7 +132,7 @@ module.exports = {
 									clearLock(key);
 								})
 							} else {
-								console.error('Error occured while attempting to refresh backend');
+								console.log(err);
 								clearLock(key)
 							}
 						}.bind({scope: this.scope}))
