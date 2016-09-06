@@ -54,7 +54,7 @@ module.exports = function(di) {
 						} else {
 							di.chain.get(key, function(err, reply) {
 								if (err) {
-									if(err instanceof di.cc.error.notFound) {
+									if (err instanceof di.cc.error.notFound) {
 										done();
 									} else {
 										done('Wrong error message returned');
@@ -82,7 +82,7 @@ module.exports = function(di) {
 					setTimeout(function() {
 						di.chain.get(key, function(err, reply) {
 							if (err) {
-								if(err instanceof di.cc.error.notFound) {
+								if (err instanceof di.cc.error.notFound) {
 									done();
 								} else {
 									done('Wrong error message returned');
@@ -95,6 +95,5 @@ module.exports = function(di) {
 				}
 			})
 		});
-
 	})
 };
